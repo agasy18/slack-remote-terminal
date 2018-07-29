@@ -1,5 +1,5 @@
 {
-  "SLACK_BOT_TOKEN": "xoxb-303504205222-406659551075-r2tFPt74gRw2favbj6Ftav0Z",
+  "SLACK_BOT_TOKEN": "export to env or write here",
   "MENTION_CHANNEL_AFTER": 20,
   "MAX_TEXT_SIZE": 4000
 }

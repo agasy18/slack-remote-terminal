@@ -12,7 +12,7 @@ import subprocess
 with open('config.json') as f:
     config = json.load(f)
 
-SLACK_BOT_TOKEN = config['SLACK_BOT_TOKEN']
+SLACK_BOT_TOKEN = os.environ['SLACK_BOT_TOKEN'] or config['SLACK_BOT_TOKEN']
 
 # instantiate Slack client
 slack_client = SlackClient(SLACK_BOT_TOKEN)
@@ -25,7 +25,15 @@ MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 MENTION_REGEX_EMPTY = ".*<@(|[WU].+?)>.*"
 
 
-
+def ignore_exception(ignore_exception=Exception, default_val=None):
+    def dec(function):
+        def _dec(*args, **kwargs):
+            try:
+                return function(*args, **kwargs)
+            except ignore_exception:
+                return default_val
+        return _dec
+    return dec
 
 class Commands:
     @staticmethod
@@ -98,17 +106,28 @@ class Commands:
     @staticmethod
     def getlog(args, reply, api_call, event):
         """
-        getlog process_id
+        getlog process_id [size]
         """
 
         if not args:
-            reply("Process id not passed")
+            reply("Process id not passed", "Error", reply_broadcast=True)
 
         pid = args[0].strip()
         if pid in Commands.log_files:
             log_file = Commands.log_files[pid]
             fl = log_file.file.tell()
             with open(log_file.name, 'rb') as f:
+                if len(args) > 1:
+                    nl = args[1]
+                    try_pars_int = ignore_exception(ValueError)(int)
+                    v = try_pars_int(nl)
+                    if not v:
+                        reply("`{}` is not int".format(nl), "Error", reply_broadcast=True)
+                        return
+                    v = min(v, fl)
+                    f.seek(-v, 2)
+                    fl = v
+
                 if fl < config['MAX_TEXT_SIZE']:
                     reply(f.read(), mrkdwn=False, reply_broadcast=True)
                 else:
