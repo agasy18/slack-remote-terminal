@@ -25,6 +25,8 @@ MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 MENTION_REGEX_EMPTY = ".*<@(|[WU].+?)>.*"
 
 
+
+
 class Commands:
     @staticmethod
     def help(args, reply, api_call, event):
@@ -58,6 +60,7 @@ class Commands:
         else:
             reply('`{}` file not found'.format(path), 'upload error', reply_broadcast=True)
 
+    log_files = {}
     @staticmethod
     def bash(args, reply, api_call, event):
         """
@@ -65,10 +68,11 @@ class Commands:
         """
 
         def runInThread():
-            f = tempfile.TemporaryFile()
-            proc = subprocess.Popen(['bash'], stderr=f, stdout=f, stdin=subprocess.PIPE)
+            f = tempfile.NamedTemporaryFile()
+            proc = subprocess.Popen(['bash'], stderr=f.file, stdout=f.file, stdin=subprocess.PIPE)
+            Commands.log_files[str(proc.pid)] = f
             command = ' '.join(args)
-            reply('Processing {}'.format(proc.pid))
+            reply('Runing on {}'.format(proc.pid))
             proc.communicate(command)
             fl = f.tell()
             f.seek(0)
@@ -81,12 +85,41 @@ class Commands:
                          filetype='txt',
                          title=command,
                          reply_broadcast=True)
-            title = '{} exited with: {}'.format(proc.pid, proc.returncode)
 
-            reply(title, reply_broadcast=fl>=config['MAX_TEXT_SIZE'])
+            f.close()
+            del Commands.log_files[str(proc.pid)]
+            title = '{} exited with: {}'.format(proc.pid, proc.returncode)
+            reply(title, reply_broadcast=fl >= config['MAX_TEXT_SIZE'])
+
 
         thread = threading.Thread(target=runInThread)
         thread.start()
+
+    @staticmethod
+    def getlog(args, reply, api_call, event):
+        """
+        getlog process_id
+        """
+
+        if not args:
+            reply("Process id not passed")
+
+        pid = args[0].strip()
+        if pid in Commands.log_files:
+            log_file = Commands.log_files[pid]
+            fl = log_file.file.tell()
+            with open(log_file.name, 'rb') as f:
+                if fl < config['MAX_TEXT_SIZE']:
+                    reply(f.read(), mrkdwn=False, reply_broadcast=True)
+                else:
+                    api_call('files.upload',
+                             file=f,
+                             filename='log.txt',
+                             filetype='txt',
+                             title=str(pid),
+                             reply_broadcast=True)
+        else:
+            reply('can\'t find process id {}', "Error", reply_broadcast=True)
 
 
 def parse_bot_commands(slack_events):
@@ -100,6 +133,11 @@ def parse_bot_commands(slack_events):
         if event["type"] == "message" and not "subtype" in event:
             user_id, message = parse_direct_mention(event["text"])
             if user_id == starterbot_id:
+                # remove url
+                match = re.match('(.*)<(.+?)\|(.+?)>(.*)', message)
+                if match:
+                    message = match.group(1) + match.group(3) + match.group(4)
+
                 return message, event
     return None, None
 
