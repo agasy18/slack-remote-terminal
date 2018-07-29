@@ -73,11 +73,17 @@ class Commands:
     def bash(args, reply, api_call, event):
         """
         execute command/script on bash
+        _ bash command/script _
         """
 
         def runInThread():
             f = tempfile.NamedTemporaryFile()
-            proc = subprocess.Popen(['bash'], stderr=f.file, stdout=f.file, stdin=subprocess.PIPE)
+            proc = subprocess.Popen(['bash'],
+                                    stderr=f.file,
+                                    stdout=f.file,
+                                    stdin=subprocess.PIPE,
+                                    cwd=os.path.expanduser('~'))
+
             Commands.log_files[str(proc.pid)] = f
             command = ' '.join(args)
             reply('Runing on {}'.format(proc.pid))
