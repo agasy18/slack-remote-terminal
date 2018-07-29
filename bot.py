@@ -76,38 +76,35 @@ class Commands:
         _ bash command/script _
         """
 
-        def runInThread():
-            f = tempfile.NamedTemporaryFile()
-            proc = subprocess.Popen(['bash'],
-                                    stderr=f.file,
-                                    stdout=f.file,
-                                    stdin=subprocess.PIPE,
-                                    cwd=os.path.expanduser('~'))
+        f = tempfile.NamedTemporaryFile()
+        proc = subprocess.Popen(['bash'],
+                                stderr=f.file,
+                                stdout=f.file,
+                                stdin=subprocess.PIPE,
+                                cwd=os.path.expanduser('~'))
 
-            Commands.log_files[str(proc.pid)] = f
-            command = ' '.join(args)
-            reply('Runing on {}'.format(proc.pid))
-            proc.communicate(command.encode())
-            fl = f.tell()
-            f.seek(0)
-            if fl < config['MAX_TEXT_SIZE']:
-                reply(f.read(), mrkdwn=False, reply_broadcast=True)
-            else:
-                api_call('files.upload',
-                         file=f,
-                         filename='log.txt',
-                         filetype='txt',
-                         title=command,
-                         reply_broadcast=True)
+        Commands.log_files[str(proc.pid)] = f
+        command = ' '.join(args)
+        reply('Runing on {}'.format(proc.pid))
+        proc.communicate(command.encode())
+        fl = f.tell()
+        f.seek(0)
+        if fl < config['MAX_TEXT_SIZE']:
+            reply(f.read(), mrkdwn=False, reply_broadcast=True)
+        else:
+            api_call('files.upload',
+                     file=f,
+                     filename='log.txt',
+                     filetype='txt',
+                     title=command,
+                     reply_broadcast=True)
 
-            f.close()
-            del Commands.log_files[str(proc.pid)]
-            title = '{} exited with: {}'.format(proc.pid, proc.returncode)
-            reply(title, reply_broadcast=fl >= config['MAX_TEXT_SIZE'])
+        f.close()
+        del Commands.log_files[str(proc.pid)]
+        title = '{} exited with: {}'.format(proc.pid, proc.returncode)
+        reply(title, reply_broadcast=fl >= config['MAX_TEXT_SIZE'])
 
 
-        thread = threading.Thread(target=runInThread)
-        thread.start()
 
     @staticmethod
     def getlog(args, reply, api_call, event):
@@ -209,6 +206,8 @@ def handle_command(command, event):
     def reply(text, title=None, **kwargs):
         if title:
             text = '*{}*\n{}'.format(title, text)
+        if not text:
+            text = '`Empty`'
         return api_call("chat.postMessage", text=text, **kwargs)
 
     if not command:
@@ -218,11 +217,15 @@ def handle_command(command, event):
     subs = command.split(' ')
     try:
         ex = getattr(Commands, subs[0])
-        try:
-            ex(subs[1:], reply, api_call, event)
-        except:
-            reply("```\n{}\n```".format(traceback.format_exc()), 'Error')
 
+        def runInThread():
+            try:
+                ex(subs[1:], reply, api_call, event)
+            except:
+                reply("```\n{}\n```".format(traceback.format_exc()), 'Error')
+
+        thread = threading.Thread(target=runInThread)
+        thread.start()
     except AttributeError:
         reply('command `{}` not found'.format(subs[0]), 'Error')
         Commands.help([], reply, api_call, event)
