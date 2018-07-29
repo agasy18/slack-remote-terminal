@@ -81,7 +81,7 @@ class Commands:
             Commands.log_files[str(proc.pid)] = f
             command = ' '.join(args)
             reply('Runing on {}'.format(proc.pid))
-            proc.communicate(command)
+            proc.communicate(command.encode())
             fl = f.tell()
             f.seek(0)
             if fl < config['MAX_TEXT_SIZE']:
