@@ -250,6 +250,6 @@ if __name__ == "__main__":
         except SystemExit:
             raise
         except:
-            traceback.print_tb()
+            traceback.print_exc()
             time.sleep(10)
             pass
