@@ -235,9 +235,12 @@ if __name__ == "__main__":
     while True:
         try:
             if slack_client.rtm_connect(with_team_state=False):
-                print("Starter Bot connected and running!")
+                print("Terminal Bot connected and running!")
                 # Read bot's user ID by calling Web API method `auth.test`
-                starterbot_id = slack_client.api_call("auth.test")["user_id"]
+                test = slack_client.api_call("auth.test")
+                starterbot_id = test["user_id"]
+                print('User info:')
+                print(json.dumps(test))
                 while True:
                     command, event = parse_bot_commands(slack_client.rtm_read())
                     if command is not None:
