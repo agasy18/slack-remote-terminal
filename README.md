@@ -22,7 +22,7 @@ _exit code_
 3526 exited with: 0
 ```
 
-Bot will run `uptime` command on bash and will reply you with output. If output is larg (see in `config.json` and slack message length restrictions) than bot will send you the log as file
+Bot will run `uptime` command on bash and will reply you with output. If output is large (see in `config.json` and slack message length restrictions) than bot will send you the log as file
 
 ## Alerting and long tasks
 Run long task (neuaral network training, big computaion, file copying, scanning, etc.) and get alert from bot about the task compleation *status* and *log*.
