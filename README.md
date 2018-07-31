@@ -25,7 +25,7 @@ _exit code_
 Bot will run `uptime` command on bash and will reply you with output. If output is larg (see in `config.json` and slack message length restrictions) than bot will send you the log as file
 
 ## Alerting and long tasks
-Run long tasks (neuaral network training, big computaions, file copying, scanning, etc.) and get alerts from the bot about the task compleation *status* and *log*.
+Run long task (neuaral network training, big computaion, file copying, scanning, etc.) and get alert from bot about the task compleation *status* and *log*.
 
 for example lats `ping google.com`
 ```
@@ -80,7 +80,7 @@ pip install slackclient
 ```
 
 ##### Setting `SLACK_BOT_TOKEN`
-Create new [Slack bot](https://api.slack.com/apps/new) (see [tutorial](https://www.fullstackpython.com/blog/build-first-slack-bot-python.html))
+Create a new [Slack bot](https://api.slack.com/apps/new) (see [tutorial](https://www.fullstackpython.com/blog/build-first-slack-bot-python.html))
 
 change `SLACK_BOT_TOKEN` in `config.json` file or just export it
 ```
