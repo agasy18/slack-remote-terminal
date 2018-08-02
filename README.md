@@ -4,7 +4,7 @@ Control remote host via Slack
 ## Run tasks on remote host via Slack
 Run tasks via slack by metioning bot at bingging of querry
 ```
-@host_bot bash uptime
+@host_bot uptime
 ```
 
 bot will reply in the thread
@@ -29,7 +29,7 @@ Run long task (neuaral network training, big computaion, file copying, scanning,
 
 for example lats `ping google.com`
 ```
-@host_bot bash ping googe.com
+@host_bot ping googe.com
 ```
 bot will reply you
 ```
@@ -58,7 +58,7 @@ to get last 1000 bytes from log pass it to `getlog`
 ```
 if you task was stppoed or killed (`@host_bot bash kill -9 3677`) bot will alert by metioning *@channel*
 ```
-@host_bot replied to a thread: @host_bot bash ping googe.com (attached log file)
+@host_bot replied to a thread: @host_bot ping googe.com (attached log file)
 @channel
 3677 exited with: -9
 ```

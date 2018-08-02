@@ -16,8 +16,6 @@ SLACK_BOT_TOKEN = os.environ['SLACK_BOT_TOKEN'] or config['SLACK_BOT_TOKEN']
 
 # instantiate Slack client
 slack_client = SlackClient(SLACK_BOT_TOKEN)
-# starterbot's user ID in Slack: value is assigned after the bot starts up
-starterbot_id = None
 
 # constants
 RTM_READ_DELAY = 0.5  # 1 second delay between reading from RTM
@@ -32,8 +30,11 @@ def ignore_exception(ignore_exception=Exception, default_val=None):
                 return function(*args, **kwargs)
             except ignore_exception:
                 return default_val
+
         return _dec
+
     return dec
+
 
 class Commands:
     @staticmethod
@@ -69,15 +70,18 @@ class Commands:
             reply('`{}` file not found'.format(path), 'upload error', reply_broadcast=True)
 
     log_files = {}
+
     @staticmethod
-    def bash(args, reply, api_call, event):
+    def terminal(args, reply, api_call, event):
         """
-        execute command/script on bash
-        _ bash command/script _
+        execute command/script on bash or other interpreter
+        _ command/script _
+        or
+        _ terminal command/script _
         """
 
         f = tempfile.NamedTemporaryFile()
-        proc = subprocess.Popen(['bash'],
+        proc = subprocess.Popen(config["INTERPRETER"],
                                 stderr=f.file,
                                 stdout=f.file,
                                 stdin=subprocess.PIPE,
@@ -104,18 +108,18 @@ class Commands:
         title = '{} exited with: {}'.format(proc.pid, proc.returncode)
         reply(title, reply_broadcast=fl >= config['MAX_TEXT_SIZE'])
 
-
-
     @staticmethod
     def getlog(args, reply, api_call, event):
         """
-        getlog process_id [size]
+        get log from active process which was scheduled by bot
+        _ getlog process_id [size] _
         """
 
         if not args:
             reply("Process id not passed", "Error", reply_broadcast=True)
 
-        pid = args[0].strip()
+        args = [a.strip() for a in args]
+        pid = args[0]
         if pid in Commands.log_files:
             log_file = Commands.log_files[pid]
             fl = log_file.file.tell()
@@ -144,7 +148,7 @@ class Commands:
             reply('can\'t find process id {}', "Error", reply_broadcast=True)
 
 
-def parse_bot_commands(slack_events):
+def parse_bot_commands(slack_events, bot_id):
     """
         Parses a list of events coming from the Slack RTM API to find bot commands.
         If a bot command is found, this function returns a tuple of command and channel.
@@ -154,7 +158,7 @@ def parse_bot_commands(slack_events):
         # TODO: reply to direct messages
         if event["type"] == "message" and not "subtype" in event:
             user_id, message = parse_direct_mention(event["text"])
-            if user_id == starterbot_id:
+            if user_id == bot_id:
                 # remove url
                 match = re.match('(.*)<(.+?)\|(.+?)>(.*)', message)
                 if match:
@@ -215,39 +219,43 @@ def handle_command(command, event):
         return
 
     subs = command.split(' ')
-    try:
+    if hasattr(Commands, subs[0]):
         ex = getattr(Commands, subs[0])
+        subs = subs[1:]
+    else:
+        ex = Commands.terminal
 
-        def runInThread():
-            try:
-                ex(subs[1:], reply, api_call, event)
-            except:
-                reply("```\n{}\n```".format(traceback.format_exc()), 'Error')
+    def runInThread():
+        try:
+            ex(subs, reply, api_call, event)
+        except:
+            reply("```\n{}\n```".format(traceback.format_exc()), 'Error')
 
-        thread = threading.Thread(target=runInThread)
-        thread.start()
-    except AttributeError:
-        reply('command `{}` not found'.format(subs[0]), 'Error')
-        Commands.help([], reply, api_call, event)
+    thread = threading.Thread(target=runInThread)
+    thread.start()
+
+
+def run_loop():
+    if slack_client.rtm_connect(with_team_state=False):
+        print("Terminal Bot connected and running!")
+        # Read bot's user ID by calling Web API method `auth.test`
+        test = slack_client.api_call("auth.test")
+        bot_id = test["user_id"]
+        print('User info:')
+        print(json.dumps(test))
+        while True:
+            command, event = parse_bot_commands(slack_client.rtm_read(), bot_id)
+            if command is not None:
+                handle_command(command, event)
+            time.sleep(RTM_READ_DELAY)
+    else:
+        print("Connection failed. Exception traceback printed above.")
 
 
 if __name__ == "__main__":
     while True:
         try:
-            if slack_client.rtm_connect(with_team_state=False):
-                print("Terminal Bot connected and running!")
-                # Read bot's user ID by calling Web API method `auth.test`
-                test = slack_client.api_call("auth.test")
-                starterbot_id = test["user_id"]
-                print('User info:')
-                print(json.dumps(test))
-                while True:
-                    command, event = parse_bot_commands(slack_client.rtm_read())
-                    if command is not None:
-                        handle_command(command, event)
-                    time.sleep(RTM_READ_DELAY)
-            else:
-                print("Connection failed. Exception traceback printed above.")
+            run_loop()
         except KeyboardInterrupt:
             raise
         except SystemExit:
