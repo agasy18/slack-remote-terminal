@@ -148,45 +148,47 @@ class Commands:
             reply('can\'t find process id {}', "Error", reply_broadcast=True)
 
 
-def parse_bot_commands(slack_events, bot_id):
+def parse_bot_commands(slack_events, bot_id, ims):
     """
         Parses a list of events coming from the Slack RTM API to find bot commands.
         If a bot command is found, this function returns a tuple of command and channel.
         If its not found, then this function returns None, None.
     """
     for event in slack_events:
-        # TODO: reply to direct messages
         if event["type"] == "message" and not "subtype" in event:
-            user_id, message = parse_direct_mention(event["text"])
+            user_id, message = parse_direct_mention(event["text"], event, ims, bot_id)
             if user_id == bot_id:
-                # remove url
+                # remove url tags
                 match = re.match('(.*)<(.+?)\|(.+?)>(.*)', message)
                 if match:
                     message = match.group(1) + match.group(3) + match.group(4)
-
                 return message, event
     return None, None
 
 
-def parse_direct_mention(message_text):
+def parse_direct_mention(message_text, event, ims, bot_id):
     """
         Finds a direct mention (a mention that is at the beginning) in message text
-        and returns the user ID which was mentioned. If there is no direct mention, returns None
+        and returns the user ID which was mentioned. If there is no direct mention or direct message, returns None
     """
+
+    print ("Processing: " + message_text)
+
     matches = re.search(MENTION_REGEX, message_text)
     if matches:
         return matches.group(1), matches.group(2).strip()
-    # TODO: fix regex
     matches = re.search(MENTION_REGEX_EMPTY, message_text)
     if matches:
         return matches.group(1), ''
+    if event['channel'] in ims:
+        return bot_id, message_text
 
     return None, None
 
 
 def handle_command(command, event):
     """
-        Executes bot command if the command is known
+        Executes bot or terminal command
     """
     start_time = time.time()
     channel = event['channel']
@@ -241,10 +243,19 @@ def run_loop():
         # Read bot's user ID by calling Web API method `auth.test`
         test = slack_client.api_call("auth.test")
         bot_id = test["user_id"]
+        ims_r = slack_client.api_call("im.list", limit=1000)
+        if 'ok' not in ims_r or not ims_r['ok'] or 'ims' not in ims_r:
+            print("Can't get direct messages list : ".format(json.dumps(ims_r)))
+            return
+        ims = [x['id'] for x in ims_r['ims']]
         print('User info:')
         print(json.dumps(test))
+        for im in ims:
+            slack_client.api_call('chat.postMessage',
+                                  channel=im,
+                                  text='Hello I am {}, ready to help you'.format(test['user']))
         while True:
-            command, event = parse_bot_commands(slack_client.rtm_read(), bot_id)
+            command, event = parse_bot_commands(slack_client.rtm_read(), bot_id, ims)
             if command is not None:
                 handle_command(command, event)
             time.sleep(RTM_READ_DELAY)

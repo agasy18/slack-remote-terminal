@@ -2,9 +2,13 @@
 Control remote host via Slack
 
 ## Run tasks on remote host via Slack
-Run tasks via slack by metioning bot at bingging of querry
+Run tasks via slack by mentioning bot at binging of quarry from channels
 ```
 @host_bot uptime
+```
+Or write direct message to bot
+```
+uptime
 ```
 
 bot will reply in the thread
@@ -27,9 +31,9 @@ Bot will run `uptime` command on bash and will reply you with output. If output 
 ## Alerting and long tasks
 Run long task (neuaral network training, big computaion, file copying, scanning, etc.) and get alert from bot about the task compleation *status* and *log*.
 
-for example lats `ping google.com`
+for example lets
 ```
-@host_bot ping googe.com
+ping googe.com
 ```
 bot will reply you
 ```
@@ -40,7 +44,7 @@ as this task is infinite, it will never stop itself
 To get log at any time for not completed tasks use `getlog` command
 
 ```
-@host_bot getlog 3677
+getlog 3677
 ```
 
 bot reply
@@ -54,7 +58,7 @@ PING googe.com (162.243.10.151) 56(84) bytes of data.
 
 to get last 1000 bytes from log pass it to `getlog`
 ```
-@host_bot getlog 3677 1000
+getlog 3677 1000
 ```
 if you task was stppoed or killed (`@host_bot bash kill -9 3677`) bot will alert by metioning *@channel*
 ```
@@ -65,7 +69,7 @@ if you task was stppoed or killed (`@host_bot bash kill -9 3677`) bot will alert
 
 ## Uplading files from host to Slack
 ```
-@host_bot upload file_path
+upload file_path
 ```
 
 ## Instalation
