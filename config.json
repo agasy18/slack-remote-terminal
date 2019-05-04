@@ -2,5 +2,6 @@
   "SLACK_BOT_TOKEN": "export to env or write here",
   "MENTION_CHANNEL_AFTER": 20,
   "MAX_TEXT_SIZE": 4000,
-  "INTERPRETER": ["bash"]
+  "INTERPRETER": ["bash"],
+  "NOTIFY_ON_CONNECTION": false
 }

@@ -54,6 +54,7 @@ class Commands:
         """
         if not args:
             reply('you mast send me file path', 'upload error', reply_broadcast=True)
+            return
 
         path = os.path.expanduser(' '.join(args))
         if os.path.isdir(path):
@@ -243,17 +244,18 @@ def run_loop():
         # Read bot's user ID by calling Web API method `auth.test`
         test = slack_client.api_call("auth.test")
         bot_id = test["user_id"]
-        ims_r = slack_client.api_call("im.list", limit=1000)
-        if 'ok' not in ims_r or not ims_r['ok'] or 'ims' not in ims_r:
-            print("Can't get direct messages list : ".format(json.dumps(ims_r)))
-            return
-        ims = [x['id'] for x in ims_r['ims']]
         print('User info:')
         print(json.dumps(test))
-        for im in ims:
-            slack_client.api_call('chat.postMessage',
-                                  channel=im,
-                                  text='Hello I am {}, ready to help you'.format(test['user']))
+        if config['NOTIFY_ON_CONNECTION']:
+            ims_r = slack_client.api_call("im.list", limit=1000)
+            if 'ok' not in ims_r or not ims_r['ok'] or 'ims' not in ims_r:
+                print("Can't get direct messages list : {}".format(json.dumps(ims_r)))
+                return
+            ims = [x['id'] for x in ims_r['ims']]
+            for im in ims:
+                slack_client.api_call('chat.postMessage',
+                                    channel=im,
+                                    text='Hello I am {}, ready to help you'.format(test['user']))
         while True:
             command, event = parse_bot_commands(slack_client.rtm_read(), bot_id, ims)
             if command is not None:
