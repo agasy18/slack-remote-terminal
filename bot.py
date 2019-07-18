@@ -246,6 +246,7 @@ def run_loop():
         bot_id = test["user_id"]
         print('User info:')
         print(json.dumps(test))
+        ims=""
         if config['NOTIFY_ON_CONNECTION']:
             ims_r = slack_client.api_call("im.list", limit=1000)
             if 'ok' not in ims_r or not ims_r['ok'] or 'ims' not in ims_r:
