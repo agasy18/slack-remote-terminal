@@ -246,12 +246,13 @@ def run_loop():
         bot_id = test["user_id"]
         print('User info:')
         print(json.dumps(test))
+        
+        ims_r = slack_client.api_call("im.list", limit=1000)
+        if 'ok' not in ims_r or not ims_r['ok'] or 'ims' not in ims_r:
+            print("Can't get direct messages list : {}".format(json.dumps(ims_r)))
+            return
+        ims = [x['id'] for x in ims_r['ims']]
         if config['NOTIFY_ON_CONNECTION']:
-            ims_r = slack_client.api_call("im.list", limit=1000)
-            if 'ok' not in ims_r or not ims_r['ok'] or 'ims' not in ims_r:
-                print("Can't get direct messages list : {}".format(json.dumps(ims_r)))
-                return
-            ims = [x['id'] for x in ims_r['ims']]
             for im in ims:
                 slack_client.api_call('chat.postMessage',
                                     channel=im,
