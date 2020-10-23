@@ -72,7 +72,7 @@ if you task was stppoed or killed (`@host_bot bash kill -9 3677`) bot will alert
 upload file_path
 ```
 
-## Instalation
+## Installation
 Download the code or clone
 ```
 git clone https://github.com/agasy18/slack-remote-terminal.git
